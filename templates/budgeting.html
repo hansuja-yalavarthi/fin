@@ -1,0 +1,104 @@
+<head>
+    <link rel="stylesheet" href="static/budget.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title">Porkfolio</h1>
+
+        <!-- Budgeting Form -->
+        <section class="form-section">
+            <h2 class="section-title">Set Your Budget</h2>
+            <form method="POST" class="budget-form">
+                <label for="category" class="form-label">Category</label>
+                <input type="text" id="category" name="category" class="form-input" required><br><br>
+                <label for="budget_limit" class="form-label">Budget Limit</label>
+                <input type="number" id="budget_limit" name="budget_limit" class="form-input" required><br><br>
+                <button type="submit" class="btn">Add Budget</button>
+            </form>
+        </section>
+
+        <!-- Current Budgets -->
+        <section class="budget-table-section">
+            <h2 class="section-title">Current Budgets</h2>
+            <table class="budget-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Budget Limit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for budget in budgets %}
+                    <tr>
+                        <td>{{ budget[1] }}</td>
+                        <td>{{ budget[2] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Savings Goal Form -->
+        <section class="form-section">
+            <h2 class="section-title">Set Your Savings Goal</h2>
+            <form method="POST" action="{{ url_for('budgeting') }}" class="goal-form">
+                <label for="goal_name" class="form-label">Goal Name</label>
+                <input type="text" id="goal_name" name="goal_name" class="form-input" required><br><br>
+                <label for="target_amount" class="form-label">Target Amount</label>
+                <input type="number" id="target_amount" name="target_amount" class="form-input" required><br><br>
+                <label for="current_savings" class="form-label">Current Savings</label>
+                <input type="number" id="current_savings" name="current_savings" class="form-input" required><br><br>
+                <label for="due_date" class="form-label">Due Date</label>
+                <input type="date" id="due_date" name="due_date" class="form-input"><br><br>
+                <button type="submit" class="btn">Add Savings Goal</button>
+            </form>
+        </section>
+
+        <!-- Current Savings Goals -->
+        <section class="goal-table-section">
+            <h2 class="section-title">Current Savings Goals</h2>
+            <table class="goal-table">
+                <thead>
+                    <tr>
+                        <th>Goal Name</th>
+                        <th>Target Amount</th>
+                        <th>Current Savings</th>
+                        <th>Due Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for goal in goals %}
+                    <tr>
+                        <td>{{ goal[1] }}</td>
+                        <td>{{ goal[2] }}</td>
+                        <td>{{ goal[3] }}</td>
+                        <td>{{ goal[4] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Pie Chart for Budgeting Visualization -->
+        <section class="chart-section">
+            <h2 class="section-title">Budget Visualization</h2>
+            <canvas id="pieChart" class="pie-chart"></canvas>
+        </section>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            var ctx = document.getElementById('pieChart').getContext('2d');
+            var pieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Food', 'Rent', 'Entertainment'],  // Example categories
+                    datasets: [{
+                        data: [500, 1200, 300],  // Example spending
+                        backgroundColor: ['red', 'green', 'blue']
+                    }]
+                }
+            });
+        </script>
+    </div>
+</body>

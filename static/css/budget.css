@@ -1,0 +1,105 @@
+/* Container */
+.container {
+    width: 80%;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+}
+
+/* Title */
+.title {
+    text-align: center;
+    font-size: 2.5em;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+/* Section Titles */
+.section-title {
+    font-size: 1.8em;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+/* Form Section */
+.form-section {
+    background-color: #ecf0f1;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.form-label {
+    font-size: 1.2em;
+    color: #34495e;
+}
+
+.form-input {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0 15px 0;
+    border-radius: 5px;
+    border: 1px solid #bdc3c7;
+}
+
+.btn {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+}
+
+.btn:hover {
+    background-color: #2980b9;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+}
+
+table, th, td {
+    border: 1px solid #bdc3c7;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+}
+
+thead {
+    background-color: #f2f2f2;
+}
+
+tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Chart Section */
+.chart-section {
+    text-align: center;
+}
+
+.pie-chart {
+    margin-top: 20px;
+    max-width: 100%;
+}
+
+/* Goal Table */
+.goal-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.goal-table th, .goal-table td {
+    padding: 12px;
+    text-align: left;
+}
+
+.goal-table thead {
+    background-color: #f2f2f2;
+}
