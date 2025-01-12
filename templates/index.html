@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"/>
+    <title>Financial Tracker</title>
+</head>
+<body class="financial-tracker-body">
+    <header class="financial-tracker-header">
+        <nav class="navbar">
+            <ul class="nav-links">
+                <li>Home</li>
+                <li>Add Transaction</li>
+                <li>View Transactions</li>
+                <li>Settings</li>
+            </ul>
+        </nav>
+
+        <div class="balance-container">
+            <div class="balance-item">
+                <h4>Current Balance</h4>
+                <p class="income">${{ balance }}</p>
+            </div>
+            <div class="balance-item">
+                <h4>Income</h4>
+                <p class="income">${{ income }}</p>
+            </div>
+            <div class="balance-item">
+                <h4>Expenses</h4>
+                <p class="expense">${{ expense }}</p>
+            </div>
+        </div>
+    </header>
+
+    <section class="filter-section">
+        <div class="search-filter">
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Search transactions..."
+                oninput="filterTransactions()"
+            />
+        </div>
+        <div class="dropdown-filters">
+            <div class="date-filter">
+                <label for="dateFrom">From:</label>
+                <input
+                    type="date"
+                    id="dateFrom"
+                    onchange="filterTransactions()"
+                />
+                <label for="dateTo">To:</label>
+                <input
+                    type="date"
+                    id="dateTo"
+                    onchange="filterTransactions()"
+                />
+            </div>
+            <div class="sort-filter">
+                <select id="sortBy" onchange="sortTransactions()">
+                    <option value="moneyAsc">Sort by Money (Ascending)</option>
+                    <option value="moneyDesc">Sort by Money (Descending)</option>
+                    <option value="dateAsc">Sort by Date (Ascending)</option>
+                    <option value="dateDesc">Sort by Date (Descending)</option>
+                </select>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="export-section">
+        <button onclick="exportData('csv')" class="export-btn">Export as CSV</button>
+        <button onclick="exportData('pdf')" class="export-btn">Export as PDF</button>
+    </section>    
+
+
+    <main class="main-container">
+        <section class="sidebar">
+            <div class="transaction-header">
+                <h2>Transactions</h2>
+                <a onclick="toggleForm()" id="add-transaction-btn" class="add-transaction-link">+</a>
+            </div>
+            <ul class="transaction-list">
+                {% for transaction in transactions %}
+                <li
+                    class="transaction-item"
+                    data-type="{{ transaction[2] | lower }}"
+                    data-category="{{ transaction[1] | lower }}"
+                    data-date="{{ transaction[4] }}"
+                    data-description="{{ transaction[5] | lower }}"
+                    data-amount="{{ transaction[3] }}"
+                    onclick="toggleDetails('{{ transaction[0] }}')"
+                >
+                    <div>
+                        {{ transaction[1] }}
+                    </div>  
+                    <div>
+                        {% if transaction[1] | lower == 'income' %}
+                            <span class="income-symbol">+ ${{ transaction[3] }}</span>
+                        {% else %}
+                            <span class="expense-symbol">- ${{ transaction[3] }}</span>
+                        {% endif %}
+                        
+                    </div>  
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section class="transaction-details">
+            <div id="transaction-detail" class="transaction-detail">
+                <p>Click on a transaction to see the details here.</p>
+            </div>
+        </section>
+    </main>
+
+    
+    <div id="addTransactionForm" class="popup-form">
+        <div class="popup-form-content">
+            <h2>Add New Transaction</h2>
+            <form action="{{ url_for('add_transaction') }}" method="POST" class="transaction-form">
+                <div class="form-group">
+                    <label for="type">Type:</label>
+                    <select id="type" name="type" required>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="category">Category:</label>
+                    <input type="text" id="category" name="category" placeholder="e.g., Salary, Food" required>
+                </div>
+                <div class="form-group">
+                    <label for="amount">Amount:</label>
+                    <input type="number" id="amount" name="amount" step="0.01" placeholder="Enter amount" required>
+                </div>
+                <div class="form-group">
+                    <label for="date">Date:</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" placeholder="Optional note"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">Add Transaction</button>
+                    <button type="button" onclick="toggleForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editTransactionForm" class="popup-form" style="display:none;">
+        <div class="popup-form-content">
+            <h2>Edit Transaction</h2>
+            <form action="{{ url_for('edit_transaction') }}" method="POST" class="transaction-form">
+                <input type="hidden" id="editTransactionId" name="transaction_id">
+        
+                <div class="form-group">
+                    <label for="editType">Type:</label>
+                    <select id="editType" name="type" required>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                    </select>
+                </div>
+        
+                <div class="form-group">
+                    <label for="editCategory">Category:</label>
+                    <input type="text" id="editCategory" name="category" required>
+                </div>
+        
+                <div class="form-group">
+                    <label for="editAmount">Amount:</label>
+                    <input type="number" id="editAmount" name="amount" step="0.01" required>
+                </div>
+        
+                <div class="form-group">
+                    <label for="editDate">Date:</label>
+                    <input type="date" id="editDate" name="date" required>
+                </div>
+        
+                <div class="form-group">
+                    <label for="editDescription">Description:</label>
+                    <textarea id="editDescription" name="description"></textarea>
+                </div>
+        
+                <div class="form-actions">
+                    <button type="submit">Save Changes</button>
+                    <button type="button" onclick="closeEditForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>    
+    
+
+    <script>
+        function toggleDetails(transactionId) {
+            console.log("Transaction ID passed: ", transactionId);
+            transactionId = Number(transactionId);
+            if (isNaN(transactionId)) {
+                console.error("Invalid Transaction ID");
+                return;
+            }
+            fetch(`/transaction/${transactionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const detailsSection = document.getElementById('transaction-detail');
+                    detailsSection.innerHTML = `
+                        <h3>Transaction Details</h3>
+                        <p><strong>Type:</strong> ${data.type}</p>
+                        <p><strong>Category:</strong> ${data.category}</p>
+                        <p><strong>Date:</strong> ${data.date}</p>
+                        <p><strong>Description:</strong> ${data.description}</p>
+                        <button onclick="openEditForm(${data.id})" class="edit-transaction-btn">Edit</button>
+                        <button class="delete-transaction-link" onclick="deleteTransaction(${data.id})">Delete Transaction</button>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error fetching transaction details:', error);
+                });
+        }
+
+        function deleteTransaction(transactionId) {
+            console.log(`Deleting transaction with ID: ${transactionId}`);
+            const confirmation = confirm("Are you sure you want to delete this transaction?");
+            if (confirmation) {
+                fetch(`/delete/${transactionId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        //alert("Transaction deleted successfully!");
+                        window.location.reload();
+                    } else {
+                        //alert("Error deleting transaction");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting transaction:', error);
+                    alert("Error deleting transaction");
+                });
+            }
+        }
+    // Function to open the popup
+    function openPopup() {
+        document.getElementById('add-transaction-popup').style.display = 'flex';
+    }
+
+    // Function to close the popup
+    function closePopup() {
+        document.getElementById('add-transaction-popup').style.display = 'none';
+    }
+
+    // Show popup when the "Add Transaction" button is clicked
+    document.getElementById('add-transaction-btn').onclick = openPopup;
+
+    // Remove the 'onsubmit' handler if you want to perform normal form submission
+    document.getElementById('add-transaction-form').onsubmit = function(event) {
+        // Normal form submission, no need to prevent it
+        closePopup(); // Close the popup after submitting
+    }
+
+    </script>
+
+<script>
+    // Function to open the popup form
+    function toggleForm() {
+        const formPopup = document.getElementById('addTransactionForm');
+        formPopup.style.display = formPopup.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    // Function to close the popup form (used when submitting the form)
+    function closeForm() {
+        const formPopup = document.getElementById('addTransactionForm');
+        formPopup.style.display = 'none';
+    }
+
+    // Event listener for the "Add Transaction" button (the "+" sign)
+    document.getElementById('add-transaction-btn').addEventListener('click', function() {
+        toggleForm();  // Open the form when the "+" button is clicked
+    });
+
+    // Optional: Automatically close the form when the user submits it
+    document.querySelector('.transaction-form').addEventListener('submit', function() {
+        closeForm();  // Close form after submit
+    });
+    
+    // Get today's date for the max attribute in the date input
+    const currentDate = new Date().toISOString().split('T')[0];
+    document.getElementById('date').setAttribute('max', currentDate);
+
+</script>
+
+<script>
+    function filterTransactions() {
+       const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    //comparison is case-insensitive
+       const dateFrom = document.getElementById('dateFrom').value;
+       const dateTo = document.getElementById('dateTo').value;
+       const transactions = document.querySelectorAll('.transaction-item');
+    
+    
+       transactions.forEach((item) => {
+           //const type = item.getAttribute('data-type').toLowerCase();  // Normalize type value
+           //const category = item.getAttribute('data-category').toLowerCase();  // Normalize category value
+           const date = item.getAttribute('data-date');
+           const description = item.getAttribute('data-description').toLowerCase();  // Normalize description value
+    
+    
+           // Check filters
+           const isSearchMatch = description.includes(searchInput);  // Search based on description
+           //const isTypeMatch = !typeFilter || type === typeFilter;  // If typeFilter is empty, no filtering, else filter by type
+           //const isCategoryMatch = !categoryFilter || category === categoryFilter;  // If categoryFilter is empty, no filtering, else filter by category
+           const isDateMatch = (!dateFrom || date >= dateFrom) && (!dateTo || date <= dateTo);  // Date filter
+    
+    
+           // Apply display logic
+           if (isSearchMatch  && isDateMatch) {
+               item.style.display = 'block';  // Show item if all conditions are met
+           } else {
+               item.style.display = 'none';  // Hide item if any condition fails
+           }
+       });
+    }
+
+    function sortTransactions() {
+        const sortBy = document.getElementById('sortBy').value; // Get selected sort option
+        const transactionsContainer = document.querySelector('.transaction-list');
+        const transactions = Array.from(transactionsContainer.getElementsByClassName('transaction-item'));
+
+        transactions.sort((a, b) => {
+            const moneyA = parseFloat(a.getAttribute('data-amount')); // Get amount from data-amount attribute
+            const moneyB = parseFloat(b.getAttribute('data-amount'));
+
+            const dateA = new Date(a.getAttribute('data-date')); // Get date from data-date attribute
+            const dateB = new Date(b.getAttribute('data-date'));
+
+            if (sortBy === 'moneyAsc') {
+                return moneyA - moneyB; // Sort by money in ascending order
+            } else if (sortBy === 'moneyDesc') {
+                return moneyB - moneyA; // Sort by money in descending order
+            } else if (sortBy === 'dateAsc') {
+                return dateA - dateB; // Sort by date in ascending order
+            } else if (sortBy === 'dateDesc') {
+                return dateB - dateA; // Sort by date in descending order
+            }
+        });
+
+        // Append sorted transactions back to the container
+        transactions.forEach(transaction => {
+            transactionsContainer.appendChild(transaction);
+        });
+
+        // Re-apply the filter after sorting
+        filterTransactions();
+    }
+
+    function exportData(format) {
+        const url = `/export/${format}`;
+        fetch(url)
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error('Failed to export data.');
+            })
+            .then(blob => {
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = `transactions.${format}`;
+                link.click();
+            })
+            .catch(error => {
+                console.error(error);
+                alert('Error exporting data. Please try again.');
+            });
+    }
+    // Function to open the Edit Transaction form and populate it with transaction details
+    function openEditForm(transactionId) {
+        console.log("Editing transaction with ID:", transactionId);
+        
+        // Fetch the transaction data for the selected transaction ID
+        fetch(`/transaction/${transactionId}`)
+            .then(response => response.json())
+            .then(data => {
+                // Populate the form fields with the current transaction data
+                document.getElementById('editTransactionId').value = data.id;
+                document.getElementById('editType').value = data.type;
+                document.getElementById('editCategory').value = data.category;
+                document.getElementById('editAmount').value = data.amount;
+                document.getElementById('editDate').value = data.date;
+                document.getElementById('editDescription').value = data.description;
+                
+                // Show the edit form popup
+                document.getElementById('editTransactionForm').style.display = 'flex';
+            })
+            .catch(error => {
+                console.error("Error fetching transaction data:", error);
+            });
+    }
+
+    // Function to close the Edit Transaction form
+    function closeEditForm() {
+        document.getElementById('editTransactionForm').style.display = 'none';
+    }
+
+
+    // Handle form submission via fetch for the edit form
+    document.querySelector('#editTransactionForm form').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+        
+        // Prepare the form data
+        const formData = new FormData(this);
+        
+        // Send data to the backend using fetch
+        fetch('{{ url_for("edit_transaction") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Transaction updated successfully!');
+                closeEditForm();  // Close the form after success
+                window.location.reload();  // Refresh the page or update the transaction list dynamically
+            } else {
+                alert('Error updating transaction');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('There was an issue submitting the form.');
+        });
+    });
+
+    </script>
+    
+
+</body>
+</html>
