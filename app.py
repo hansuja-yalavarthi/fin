@@ -1,11 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify, Response, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, jsonify, Response, send_file
 from datetime import datetime
 import sqlite3
 import csv
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
@@ -197,56 +199,129 @@ def export_pdf():
 @app.route('/budgeting', methods=['GET', 'POST'])
 def budgeting():
     if request.method == 'POST':
-        # Handle budget category updates
-        category = request.form['category']
-        budget_limit = float(request.form['budget_limit'])
+        # Handle adding a new budget category
+        if 'category' in request.form and 'budget_limit' in request.form:
+            category = request.form['category']
+            budget_limit = float(request.form['budget_limit'])
 
-        conn = sqlite3.connect('finances.db')
-        c = conn.cursor()
-        c.execute('''INSERT INTO budgets (category, budget_limit) VALUES (?, ?)''', 
-                  (category, budget_limit))
-        conn.commit()
-        conn.close()
+            conn = sqlite3.connect('finances.db')
+            c = conn.cursor()
+            c.execute('''INSERT INTO budgets (category, budget_limit) VALUES (?, ?)''', 
+                      (category, budget_limit))
+            conn.commit()
+            conn.close()
+        
+        # Handle adding a new savings goal
+        if 'goal_name' in request.form and 'target_amount' in request.form and 'current_savings' in request.form:
+            goal_name = request.form['goal_name']
+            target_amount = float(request.form['target_amount'])
+            current_savings = float(request.form['current_savings'])
+            due_date = request.form['due_date']
+
+            conn = sqlite3.connect('finances.db')
+            c = conn.cursor()
+            c.execute('''INSERT INTO savings_goals (goal_name, target_amount, current_savings, due_date)
+                         VALUES (?, ?, ?, ?)''', 
+                      (goal_name, target_amount, current_savings, due_date))
+            conn.commit()
+            conn.close()
 
         return redirect(url_for('budgeting'))
 
-    # Retrieve current budgets
+    # Retrieve current budgets and savings goals
     conn = sqlite3.connect('finances.db')
     c = conn.cursor()
+
+    # Get budgets
     c.execute("SELECT * FROM budgets")
     budgets = c.fetchall()
-    conn.close()
 
-    return render_template('budgeting.html', budgets=budgets)
-
-
-@app.route('/savings', methods=['GET', 'POST'])
-def savings():
-    if request.method == 'POST':
-        # Handle savings goal updates
-        goal_name = request.form['goal_name']
-        target_amount = float(request.form['target_amount'])
-        current_savings = float(request.form['current_savings'])
-        due_date = request.form['due_date']
-
-        conn = sqlite3.connect('finances.db')
-        c = conn.cursor()
-        c.execute('''INSERT INTO savings_goals (goal_name, target_amount, current_savings, due_date)
-                     VALUES (?, ?, ?, ?)''', 
-                  (goal_name, target_amount, current_savings, due_date))
-        conn.commit()
-        conn.close()
-
-        return redirect(url_for('savings'))
-
-    # Retrieve current savings goals
-    conn = sqlite3.connect('finances.db')
-    c = conn.cursor()
+    # Get savings goals
     c.execute("SELECT * FROM savings_goals")
     goals = c.fetchall()
+
     conn.close()
 
-    return render_template('savings.html', goals=goals)
+    return render_template('budgeting.html', budgets=budgets, goals=goals)
+
+
+
+# Setup secret key and database URI
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize database and login manager
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+
+# User model
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+
+# Create database tables
+with app.app_context():
+    db.create_all()
+
+# Route for Home Page (Login Required)
+@app.route('/')
+@login_required
+def home():
+    # You can add other logic related to budgeting, savings, etc.
+    return render_template('index.html')
+
+# Route for Login
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('home'))
+        else:
+            flash('Login unsuccessful. Please check your username and password', 'danger')
+    return render_template('login.html')
+
+# Route for Signup
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        hashed_password = generate_password_hash(password)  # Using the default pbkdf2_sha256
+
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists. Please choose a different one.', 'danger')
+            return redirect(url_for('signup'))
+
+        new_user = User(username=username, password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Signup successful! You can now login.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('signup.html')
+
+
+# Route for Logout
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# Load user function for Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 
 
 if __name__ == "__main__":
