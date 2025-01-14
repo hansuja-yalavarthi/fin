@@ -9,13 +9,15 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Initialize Flask application
 app = Flask(__name__)
 
+# ------------------------------- Database Initialization -------------------------------
 def init_db():
     conn = sqlite3.connect('finances.db')
     c = conn.cursor()
 
-    # Transactions table
+    # Transactions table: Logs income and expenses with details.
     c.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,7 +29,7 @@ def init_db():
         )
     ''')
 
-    # Budget table
+    # Budget table: Stores budget limits for specific categories.
     c.execute('''
         CREATE TABLE IF NOT EXISTS budgets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,7 +38,7 @@ def init_db():
         )
     ''')
 
-    # Savings Goals table
+    # Savings Goals table: tracks savings goals with target amounts and progress.
     c.execute('''
         CREATE TABLE IF NOT EXISTS savings_goals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,13 +52,16 @@ def init_db():
     conn.commit()
     conn.close()
 
+# ------------------------------- Routes -------------------------------
 @app.route('/')
 def index():
     conn = sqlite3.connect('finances.db')
     c = conn.cursor()
+    # Fetch all transactions
     c.execute("SELECT * FROM transactions")
     transactions = c.fetchall()
 
+    # Calculate total income and expenses
     c.execute("SELECT SUM(amount) FROM transactions WHERE type='income'")
     total_income = c.fetchone()[0] or 0
     c.execute("SELECT SUM(amount) FROM transactions WHERE type='expense'")
@@ -70,12 +75,14 @@ def index():
 @app.route('/add', methods=['GET', 'POST'])
 def add_transaction():
     if request.method == 'POST':
+        # Retrieve form data
         transaction_type = request.form['type']
         category = request.form['category']
         amount = float(request.form['amount'])
         date = request.form['date']
         description = request.form['description']
 
+        # Insert the new transaction into the database
         conn = sqlite3.connect('finances.db')
         c = conn.cursor()
         c.execute('''INSERT INTO transactions (type, category, amount, date, description) 
@@ -90,6 +97,10 @@ def add_transaction():
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
     # Get form data
+    """
+    Route for editing an existing transaction.
+    Accepts updated transaction data via POST request.
+    """
     transaction_id = request.form['transaction_id']
     transaction_type = request.form['type']
     category = request.form['category']
@@ -119,12 +130,16 @@ def edit_transaction():
 
 @app.route('/delete/<int:transaction_id>', methods=['DELETE'])
 def delete_transaction(transaction_id):
+    """
+    Deletes a transaction by its ID.
+    Returns a JSON response indicating success or failure.
+    """
     conn = sqlite3.connect('finances.db')
     c = conn.cursor()
     c.execute("DELETE FROM transactions WHERE id=?", (transaction_id,))
     conn.commit()
 
-    if c.rowcount > 0:
+    if c.rowcount > 0: # Success check
         conn.close()
         return jsonify({'success': True})
     else:
@@ -153,6 +168,10 @@ def get_transaction_details(transaction_id):
 
 @app.route('/export/csv')
 def export_csv():
+    """
+    Exports all transactions as a CSV file.
+    Uses a generator to stream the CSV data for efficient handling.
+    """
     conn = sqlite3.connect('finances.db')
     c = conn.cursor()
     c.execute("SELECT * FROM transactions")
