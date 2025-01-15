@@ -86,6 +86,17 @@
             <canvas id="pieChart" class="pie-chart"></canvas>
         </section>
 
+        <!-- Bar Chart for Weekly/Monthly Reports -->
+        <section class="chart-section">
+            <h2 class="section-title">Spending Reports</h2>
+            <label for="timePeriod" class="form-label">View By:</label>
+            <select id="timePeriod" class="form-input">
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+            </select>
+            <canvas id="barChart" class="bar-chart"></canvas>
+        </section>
+
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
             var ctx = document.getElementById('pieChart').getContext('2d');
@@ -100,5 +111,73 @@
                 }
             });
         </script>
+
+        <script>
+            var barCtx = document.getElementById('barChart').getContext('2d');
+
+            // Example data (replace with server data dynamically)
+            var weeklyData = {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                datasets: [{
+                    label: 'Spending',
+                    data: [200, 150, 300, 250],
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            };
+
+            var monthlyData = {
+                labels: ['January', 'February', 'March', 'April'],
+                datasets: [{
+                    label: 'Spending',
+                    data: [800, 750, 1000, 950],
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            };
+
+            var barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: weeklyData, // Default to weekly
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time Period'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Spending Amount ($)'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Dropdown to switch between Weekly and Monthly data
+            document.getElementById('timePeriod').addEventListener('change', function () {
+                if (this.value === 'weekly') {
+                    barChart.data = weeklyData;
+                } else if (this.value === 'monthly') {
+                    barChart.data = monthlyData;
+                }
+                barChart.update(); // Update chart with new data
+            });
+        </script>
+
     </div>
 </body>
+
