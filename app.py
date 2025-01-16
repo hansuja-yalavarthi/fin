@@ -8,6 +8,7 @@ from reportlab.pdfgen import canvas
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+import json
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -69,7 +70,16 @@ def index():
     current_balance = total_income - total_expense
 
     conn.close()
-    return render_template('index.html', transactions=transactions, balance=current_balance, income=total_income, expense=total_expense)
+
+    budgets = {
+        'food': 500,
+        'salary': 0,  # No limit for income
+        'gifts': 200,
+        'rent': 1000,
+    }
+    return render_template('index.html', transactions=transactions, balance=current_balance, income=total_income, expense=total_expense, budgets_json=json.dumps(budgets))
+    #return render_template('index.html', transactions=transactions, balance=current_balance, income=total_income, expense=total_expense)
+
 
 
 @app.route('/add', methods=['GET', 'POST'])
